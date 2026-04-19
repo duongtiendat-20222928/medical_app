@@ -40,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200 && data['status'] == 'success') {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('user_id', data['user']['id']);
+        await prefs.setInt('userId', data['user']['id']);
         await prefs.setString(
           'user_name',
           data['user']['name'],

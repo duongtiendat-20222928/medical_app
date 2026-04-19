@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'patient_form_screen.dart';
 
 class BookingScreen extends StatefulWidget {
@@ -10,18 +12,44 @@ class BookingScreen extends StatefulWidget {
 }
 
 class _BookingScreenState extends State<BookingScreen> {
-  DateTime _selectedDate = DateTime.now(); // Mặc định là ngày hôm nay
-  String _selectedTime = "08:00"; // Mặc định khung giờ đầu tiên
+  DateTime _selectedDate = DateTime.now();
+  String? _selectedTime; // Đổi thành nullable
+  List<String> _availableSlots = []; // Danh sách lấy từ API
+  bool _isLoadingSlots = false;
 
-  // Danh sách các khung giờ khám bệnh
-  final List<String> _timeSlots = [
-    "08:00",
-    "09:00",
-    "10:00",
-    "14:00",
-    "15:00",
-    "16:00",
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchAvailableSlots(); // Load giờ cho ngày mặc định (hôm nay)
+  }
+
+  // Hàm gọi API lấy giờ trống
+  Future<void> _fetchAvailableSlots() async {
+    setState(() {
+      _isLoadingSlots = true;
+      _selectedTime = null; // Reset giờ đã chọn khi đổi ngày
+    });
+
+    try {
+      final dateStr = _selectedDate.toString().split(' ')[0];
+      final response = await http.get(
+        Uri.parse(
+          'http://192.168.189.1:8000/api/available-slots?doctor_id=${widget.doctor['id']}&date=$dateStr',
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _availableSlots = List<String>.from(data['data']);
+        });
+      }
+    } catch (e) {
+      print("Lỗi lấy slot: $e");
+    } finally {
+      setState(() => _isLoadingSlots = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,8 +104,12 @@ class _BookingScreenState extends State<BookingScreen> {
                     lastDate: DateTime.now().add(
                       const Duration(days: 30),
                     ), // Cho phép đặt trước 30 ngày
-                    onDateChanged: (date) =>
-                        setState(() => _selectedDate = date),
+                    onDateChanged: (date) {
+                      setState(() {
+                        _selectedDate = date; // 1. Cập nhật ngày mới
+                      });
+                      _fetchAvailableSlots(); // 2. GỌI LẠI API ĐỂ LOAD GIỜ MỚI
+                    },
                   ),
                 ),
 
@@ -87,27 +119,36 @@ class _BookingScreenState extends State<BookingScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 12),
-                // Các nút bấm chọn giờ
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: _timeSlots.map((time) {
-                    final isSelected = _selectedTime == time;
-                    return ChoiceChip(
-                      label: Text(
-                        time,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.black87,
+                // Hiển thị trạng thái loading
+                if (_isLoadingSlots)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else
+                  // Các nút bấm chọn giờ
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: _availableSlots.map((time) {
+                      final isSelected = _selectedTime == time;
+                      return ChoiceChip(
+                        label: Text(
+                          time,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.black87,
+                          ),
                         ),
-                      ),
-                      selected: isSelected,
-                      selectedColor: Colors.blue,
-                      backgroundColor: Colors.grey[200],
-                      onSelected: (selected) =>
-                          setState(() => _selectedTime = time),
-                    );
-                  }).toList(),
-                ),
+                        selected: isSelected,
+                        selectedColor: Colors.blue,
+                        backgroundColor: Colors.grey[200],
+                        onSelected: (selected) =>
+                            setState(() => _selectedTime = time),
+                      );
+                    }).toList(),
+                  ),
 
                 // Đã xóa Spacer() và thay bằng SizedBox cố định
                 const SizedBox(height: 32),
@@ -121,18 +162,20 @@ class _BookingScreenState extends State<BookingScreen> {
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
                     ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PatientFormScreen(
-                            doctor: widget.doctor,
-                            date: _selectedDate.toString().split(' ')[0],
-                            time: _selectedTime,
-                          ),
-                        ),
-                      );
-                    },
+                    onPressed: _selectedTime == null
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PatientFormScreen(
+                                  doctor: widget.doctor,
+                                  date: _selectedDate.toString().split(' ')[0],
+                                  time: _selectedTime!,
+                                ),
+                              ),
+                            );
+                          },
                     child: const Text(
                       "TIẾP TỤC ĐIỀN THÔNG TIN",
                       style: TextStyle(

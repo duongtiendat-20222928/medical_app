@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "D:/btl_cdtt3/linux"
+    "cmake.sourceDirectory": "D:/btl_cdtt3/linux",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }
