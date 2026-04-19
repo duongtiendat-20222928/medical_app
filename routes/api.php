@@ -20,3 +20,5 @@ Route::post('/appointments', [AppointmentController::class, 'store']);
 Route::get('/appointments', [AppointmentController::class, 'index']); // Lấy lịch hẹn
 Route::post('/update-profile', [App\Http\Controllers\Api\AuthController::class, 'updateProfile']);
 Route::post('/change-password', [App\Http\Controllers\Api\AuthController::class, 'changePassword']);
+Route::get('/available-slots', [App\Http\Controllers\Api\AppointmentController::class, 'getAvailableSlots']);
+Route::post('/change-status', [App\Http\Controllers\Api\AppointmentController::class, 'changeStatus']);

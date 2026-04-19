@@ -23,4 +23,14 @@ class Appointment extends Model
         'address',
         'reason'
     ];
+    // Bổ sung mối quan hệ với bảng Doctors
+    public function doctor()
+    {
+        return $this->belongsTo(Doctor::class, 'doctor_id');
+    }
+    // Bổ sung mối quan hệ với bảng Users (Bệnh nhân)
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }

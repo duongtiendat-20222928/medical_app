@@ -15,5 +15,6 @@ class Doctor extends Model
         'specialty',
         'price',
         'image',
+        'description',
     ];
 }
